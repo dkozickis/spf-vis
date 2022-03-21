@@ -1,0 +1,106 @@
+diff --git a/node_modules/react-d3-tree/lib/Link/index.d.ts b/node_modules/react-d3-tree/lib/Link/index.d.ts
+index 105bcac..1fc93d0 100644
+--- a/node_modules/react-d3-tree/lib/Link/index.d.ts
++++ b/node_modules/react-d3-tree/lib/Link/index.d.ts
+@@ -1,11 +1,12 @@
+ import React, { SyntheticEvent } from 'react';
+ import { HierarchyPointNode } from 'd3-hierarchy';
+-import { Orientation, TreeLinkDatum, PathFunctionOption, PathFunction, TreeNodeDatum, PathClassFunction } from '../types/common';
++import { Orientation, TreeLinkDatum, PathFunctionOption, PathFunction, TreeNodeDatum, PathClassFunction, LinkTextFunction } from '../types/common';
+ declare type LinkEventHandler = (source: HierarchyPointNode<TreeNodeDatum>, target: HierarchyPointNode<TreeNodeDatum>, evt: SyntheticEvent) => void;
+ interface LinkProps {
+     linkData: TreeLinkDatum;
+     orientation: Orientation;
+     pathFunc: PathFunctionOption | PathFunction;
++    linkTextFunc?: LinkTextFunction;
+     pathClassFunc?: PathClassFunction;
+     enableLegacyTransitions: boolean;
+     transitionDuration: number;
+diff --git a/node_modules/react-d3-tree/lib/Link/index.js b/node_modules/react-d3-tree/lib/Link/index.js
+index 0ba35c2..6582d1e 100644
+--- a/node_modules/react-d3-tree/lib/Link/index.js
++++ b/node_modules/react-d3-tree/lib/Link/index.js
+@@ -129,9 +129,12 @@ var Link = /** @class */ (function (_super) {
+     Link.prototype.render = function () {
+         var _this = this;
+         var linkData = this.props.linkData;
+-        return (react_1.default.createElement("path", { ref: function (l) {
+-                _this.linkRef = l;
+-            }, style: __assign({}, this.state.initialStyle), className: this.getClassNames(), d: this.drawPath(), onClick: this.handleOnClick, onMouseOver: this.handleOnMouseOver, onMouseOut: this.handleOnMouseOut, "data-source-id": linkData.source.id, "data-target-id": linkData.target.id }));
++        var id = linkData.source.data.__rd3t.id + "-" + linkData.target.data.__rd3t.id;
++        return (react_1.default.createElement("g", { id: "g-" + id },
++            react_1.default.createElement("path", { ref: function (l) {
++                    _this.linkRef = l;
++                }, id: id, style: __assign({}, this.state.initialStyle), className: this.getClassNames(), d: this.drawPath(), onClick: this.handleOnClick, onMouseOver: this.handleOnMouseOver, onMouseOut: this.handleOnMouseOut, "data-source-id": linkData.source.id, "data-target-id": linkData.target.id }),
++            this.props.linkTextFunc(this.props.linkData, id)));
+     };
+     return Link;
+ }(react_1.default.PureComponent));
+diff --git a/node_modules/react-d3-tree/lib/Tree/index.js b/node_modules/react-d3-tree/lib/Tree/index.js
+index 46aee62..01c3e30 100644
+--- a/node_modules/react-d3-tree/lib/Tree/index.js
++++ b/node_modules/react-d3-tree/lib/Tree/index.js
+@@ -446,7 +446,7 @@ var Tree = /** @class */ (function (_super) {
+     Tree.prototype.render = function () {
+         var _this = this;
+         var _a = this.generateTree(), nodes = _a.nodes, links = _a.links;
+-        var _b = this.props, renderCustomNodeElement = _b.renderCustomNodeElement, orientation = _b.orientation, pathFunc = _b.pathFunc, transitionDuration = _b.transitionDuration, nodeSize = _b.nodeSize, depthFactor = _b.depthFactor, initialDepth = _b.initialDepth, separation = _b.separation, enableLegacyTransitions = _b.enableLegacyTransitions, svgClassName = _b.svgClassName, pathClassFunc = _b.pathClassFunc;
++        var _b = this.props, renderCustomNodeElement = _b.renderCustomNodeElement, orientation = _b.orientation, pathFunc = _b.pathFunc, linkTextFunc = _b.linkTextFunc, transitionDuration = _b.transitionDuration, nodeSize = _b.nodeSize, depthFactor = _b.depthFactor, initialDepth = _b.initialDepth, separation = _b.separation, enableLegacyTransitions = _b.enableLegacyTransitions, svgClassName = _b.svgClassName, pathClassFunc = _b.pathClassFunc;
+         var _c = this.state.d3, translate = _c.translate, scale = _c.scale;
+         var subscriptions = __assign(__assign(__assign({}, nodeSize), separation), { depthFactor: depthFactor,
+             initialDepth: initialDepth });
+@@ -455,7 +455,7 @@ var Tree = /** @class */ (function (_super) {
+             react_1.default.createElement("svg", { className: "rd3t-svg " + this.svgInstanceRef + " " + svgClassName, width: "100%", height: "100%" },
+                 react_1.default.createElement(TransitionGroupWrapper_1.default, { enableLegacyTransitions: enableLegacyTransitions, component: "g", className: "rd3t-g " + this.gInstanceRef, transform: "translate(" + translate.x + "," + translate.y + ") scale(" + scale + ")" },
+                     links.map(function (linkData, i) {
+-                        return (react_1.default.createElement(Link_1.default, { key: 'link-' + i, orientation: orientation, pathFunc: pathFunc, pathClassFunc: pathClassFunc, linkData: linkData, onClick: _this.handleOnLinkClickCb, onMouseOver: _this.handleOnLinkMouseOverCb, onMouseOut: _this.handleOnLinkMouseOutCb, enableLegacyTransitions: enableLegacyTransitions, transitionDuration: transitionDuration }));
++                        return (react_1.default.createElement(Link_1.default, { key: 'link-' + i, orientation: orientation, pathFunc: pathFunc, linkTextFunc: linkTextFunc, pathClassFunc: pathClassFunc, linkData: linkData, onClick: _this.handleOnLinkClickCb, onMouseOver: _this.handleOnLinkMouseOverCb, onMouseOut: _this.handleOnLinkMouseOutCb, enableLegacyTransitions: enableLegacyTransitions, transitionDuration: transitionDuration }));
+                     }),
+                     nodes.map(function (hierarchyPointNode, i) {
+                         var data = hierarchyPointNode.data, x = hierarchyPointNode.x, y = hierarchyPointNode.y, parent = hierarchyPointNode.parent;
+@@ -474,6 +474,7 @@ var Tree = /** @class */ (function (_super) {
+         translate: { x: 0, y: 0 },
+         pathFunc: 'diagonal',
+         pathClassFunc: undefined,
++        linkTextFunc: undefined,
+         transitionDuration: 500,
+         depthFactor: undefined,
+         collapsible: true,
+diff --git a/node_modules/react-d3-tree/lib/Tree/types.d.ts b/node_modules/react-d3-tree/lib/Tree/types.d.ts
+index 6d974ba..7c72998 100644
+--- a/node_modules/react-d3-tree/lib/Tree/types.d.ts
++++ b/node_modules/react-d3-tree/lib/Tree/types.d.ts
+@@ -1,6 +1,6 @@
+ import { HierarchyPointNode } from 'd3-hierarchy';
+ import { SyntheticEvent } from 'react';
+-import { Orientation, PathClassFunction, PathFunction, PathFunctionOption, Point, RawNodeDatum, RenderCustomNodeElementFn, TreeNodeDatum } from '../types/common';
++import { LinkTextFunction, Orientation, PathClassFunction, PathFunction, PathFunctionOption, Point, RawNodeDatum, RenderCustomNodeElementFn, TreeNodeDatum } from '../types/common';
+ export declare type TreeNodeEventCallback = (node: HierarchyPointNode<TreeNodeDatum>, event: SyntheticEvent) => any;
+ export declare type TreeLinkEventCallback = (sourceNode: HierarchyPointNode<TreeNodeDatum>, targetNode: HierarchyPointNode<TreeNodeDatum>, event: SyntheticEvent) => any;
+ /**
+@@ -134,6 +134,7 @@ export interface TreeProps {
+      * {@link Tree.defaultProps.pathClassFunc | Default value}
+      */
+     pathClassFunc?: PathClassFunction;
++    linkTextFunc?: LinkTextFunction;
+     /**
+      * Determines the spacing between parent & child nodes.
+      *
+diff --git a/node_modules/react-d3-tree/lib/types/common.d.ts b/node_modules/react-d3-tree/lib/types/common.d.ts
+index 573cf2f..dcee1ab 100644
+--- a/node_modules/react-d3-tree/lib/types/common.d.ts
++++ b/node_modules/react-d3-tree/lib/types/common.d.ts
+@@ -1,4 +1,4 @@
+-import { SyntheticEvent } from 'react';
++import { ReactNode, SyntheticEvent } from 'react';
+ import { HierarchyPointNode } from 'd3-hierarchy';
+ export declare type Orientation = 'horizontal' | 'vertical';
+ export interface Point {
+@@ -25,6 +25,7 @@ export interface TreeLinkDatum {
+ export declare type PathFunctionOption = 'diagonal' | 'elbow' | 'straight' | 'step';
+ export declare type PathFunction = (link: TreeLinkDatum, orientation: Orientation) => string;
+ export declare type PathClassFunction = PathFunction;
++export declare type LinkTextFunction = (link: TreeLinkDatum, id: string) => ReactNode;
+ export declare type SyntheticEventHandler = (evt: SyntheticEvent) => void;
+ /**
+  * The properties that are passed to the user-defined `renderCustomNodeElement` render function.
